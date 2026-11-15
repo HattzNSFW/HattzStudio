@@ -108,15 +108,29 @@
       $("profilesTable").innerHTML = currentProfiles.length ? currentProfiles.map((profile) => {
         const official = ["MT7QTEVMZY", "YGZNK6TMG8"].includes(profile.code);
         const status = profile.status || "active";
-        return `<tr><td><input type="checkbox" class="profile-check" data-code="${escapeHtml(profile.code)}" ${official ? "disabled" : ""}></td><td><span class="code-cell">${escapeHtml(profile.code)}</span>${official ? '<span class="sub-cell">Perfil oficial · protegido</span>' : ""}</td><td>${formatBytes(profile.storage_bytes)}</td><td>${Number(profile.media_count || 0)}</td><td><span class="state ${escapeHtml(status)}">${status === "active" ? "Ativo" : status === "suspended" ? "Suspenso" : "Excluindo"}</span></td><td>${formatDate(profile.updated_at)}</td></tr>`;
-      }).join("") : '<tr><td colspan="6" class="empty">Nenhum perfil encontrado.</td></tr>';
+        return `<tr><td><input type="checkbox" class="profile-check" data-code="${escapeHtml(profile.code)}" ${official ? "disabled" : ""}></td><td><span class="code-cell">${escapeHtml(profile.code)}</span>${official ? '<span class="sub-cell">Perfil oficial · protegido</span>' : ""}</td><td>${formatBytes(profile.storage_bytes)}</td><td>${Number(profile.media_count || 0)}</td><td><span class="state ${escapeHtml(status)}">${status === "active" ? "Ativo" : status === "suspended" ? "Suspenso" : "Excluindo"}</span></td><td>${formatDate(profile.updated_at)}</td><td><button type="button" class="quiet-button profile-reset" data-code="${escapeHtml(profile.code)}">Restaurar padrão</button></td></tr>`;
+      }).join("") : '<tr><td colspan="7" class="empty">Nenhum perfil encontrado.</td></tr>';
       $("profilesPageLabel").textContent = `Página ${page} de ${totalPages} · ${result.total} perfis`;
       $("previousPage").disabled = page <= 1;
       $("nextPage").disabled = page >= totalPages;
       $("selectAllProfiles").checked = false;
       updateSelection();
-    } catch (error) { $("profilesTable").innerHTML = `<tr><td colspan="6" class="empty">${escapeHtml(error.message)}</td></tr>`; }
+    } catch (error) { $("profilesTable").innerHTML = `<tr><td colspan="7" class="empty">${escapeHtml(error.message)}</td></tr>`; }
   }
+  async function resetProfileFromControl(code) {
+    const confirmed = window.confirm(`Restaurar ${code} ao padrão? Todas as personalizações e mídias serão removidas. VIP, cargos, tags e molduras concedidas serão preservados.`);
+    if (!confirmed) return;
+    const typed = window.prompt(`Para confirmar, digite RESTAURAR ${code}:`);
+    if (typed !== `RESTAURAR ${code}`) { if (typed !== null) notify("Confirmação não corresponde. Nada foi alterado."); return; }
+    const button = document.querySelector(`.profile-reset[data-code="${CSS.escape(code)}"]`);
+    if (button) button.disabled = true;
+    try {
+      const result = await api(`/api/admin/profiles/${encodeURIComponent(code)}/reset`, { method: "POST", body: JSON.stringify({ confirmation: "RESTAURAR" }) });
+      notify(`Perfil restaurado. ${Number(result.mediaRemoved || 0)} mídias removidas; benefícios preservados.`);
+      await Promise.all([loadProfiles(), loadStorage(), loadOverview()]);
+    } catch (error) { notify(error.message); if (button) button.disabled = false; }
+  }
+
   function selectedCodes() { return [...document.querySelectorAll(".profile-check:checked")].map((input) => input.dataset.code); }
   function updateSelection() {
     const count = selectedCodes().length;
@@ -474,6 +488,7 @@
   $("searchProfiles").addEventListener("click", () => { page = 1; loadProfiles(); });
   $("profileSearch").addEventListener("keydown", (event) => { if (event.key === "Enter") { page = 1; loadProfiles(); } });
   $("profilesTable").addEventListener("change", (event) => { if (event.target.matches(".profile-check")) updateSelection(); });
+  $("profilesTable").addEventListener("click", (event) => { const button = event.target.closest(".profile-reset"); if (button) resetProfileFromControl(button.dataset.code); });
   $("selectAllProfiles").addEventListener("change", (event) => { document.querySelectorAll(".profile-check:not(:disabled)").forEach((input) => input.checked = event.target.checked); updateSelection(); });
   $("suspendSelected").addEventListener("click", () => changeSelectedStatus("suspended"));
   $("activateSelected").addEventListener("click", () => changeSelectedStatus("active"));

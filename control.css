@@ -74,3 +74,17 @@ tbody tr:hover td{background:rgba(185,154,240,.045)}
 .role-access-option{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:center;padding:10px 12px;border:1px solid var(--border,#302a3a);border-radius:12px;margin:7px 0;background:rgba(255,255,255,.025)}
 .role-access-option input{grid-row:span 2;accent-color:var(--accent,#a78bfa);width:17px;height:17px}
 .role-access-option span{font-weight:700}.role-access-option small{opacity:.62;font-size:11px}
+
+/* v7 — refinamento de legibilidade, hierarquia e ações de perfil */
+.profile-reset{white-space:nowrap;font-size:.72rem;padding:8px 11px;border-color:rgba(185,154,240,.24);color:#d7c6f5}
+.profile-reset:hover{background:rgba(185,154,240,.12);border-color:rgba(185,154,240,.5)}
+#profilesTable td{vertical-align:middle;padding-top:13px;padding-bottom:13px}
+#profilesTable tr{transition:background .16s ease}
+#profilesTable .code-cell{font-variant-numeric:tabular-nums;letter-spacing:.025em}
+.selection-toolbar{gap:14px}
+.selection-toolbar>div{display:flex;flex-wrap:wrap;gap:8px}
+.panel-heading{gap:16px}
+.page-heading{gap:18px}
+.field small,.muted{line-height:1.65}
+button:disabled{cursor:not-allowed;opacity:.48;transform:none!important}
+@media(max-width:760px){#profilesTable{min-width:760px}.profile-reset{font-size:.68rem}.selection-toolbar>div>*{flex:1 1 auto}}

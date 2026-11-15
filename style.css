@@ -3894,3 +3894,12 @@ img,video{max-width:100%}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 
 .role-chip:not(.owner-role){border-color:color-mix(in srgb,var(--role-accent,#b99af0) 42%,transparent);background:color-mix(in srgb,var(--role-accent,#b99af0) 12%,transparent);color:var(--role-accent,#e5d6ff)}
+
+/* Hättz Share v7 — acabamento transversal e acessibilidade */
+:root{--ui-radius:18px;--ui-line:rgba(205,185,235,.13);--ui-shadow:0 18px 55px rgba(0,0,0,.22)}
+button,a,input,select,textarea{ -webkit-tap-highlight-color:transparent }
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent,#a78bfa);outline-offset:3px}
+button:disabled{opacity:.5;cursor:not-allowed;filter:saturate(.6)}
+.panel,.editor-panel,.glass-card{border-color:var(--ui-line)}
+img,video{max-width:100%}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
