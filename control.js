@@ -172,6 +172,11 @@
       $("storageRemaining").textContent = formatBytes(data.remainingBytes);
       $("storageProfiles").textContent = `${data.profileCount} / ${data.maxProfiles}`;
       $("storageEstimate").textContent = data.estimatedAdditionalProfilesByStorage == null ? "Sem média" : data.estimatedAdditionalProfilesByStorage;
+      const drift = Number(data.counterDriftBytes || 0);
+      $("storageIntegrity").textContent = drift === 0
+        ? "Contadores íntegros. O total considera mídias registradas no D1; objetos órfãos no bucket não entram nesta métrica."
+        : `Divergência detectada nos contadores internos: ${formatBytes(Math.abs(drift))}. O painel usa os metadados de mídia como referência.`;
+      $("storageIntegrity").classList.toggle("warning", drift !== 0);
       const largest = data.largestProfiles || [];
       const max = Math.max(1, ...largest.map((x) => Number(x.storage_bytes || 0)));
       $("largestProfiles").innerHTML = largest.length ? largest.map((item) => `<div class="largest-item"><strong>${escapeHtml(item.code)}</strong><div class="bar"><span style="width:${Math.min(100, Number(item.storage_bytes || 0) / max * 100)}%"></span></div><span>${formatBytes(item.storage_bytes)}</span></div>`).join("") : '<p class="empty">Sem dados.</p>';
