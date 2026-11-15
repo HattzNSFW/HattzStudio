@@ -2530,11 +2530,14 @@ function deleteSavedTheme() {
   showToast("Tema excluído.");
 }
 
-const BADGE_PRESETS = ["Verified", "Gamer", "Artist", "Designer", "VIP", "Creator", "Photographer", "Music", "Technology", "Writer", "Editor", "Collector"];
+const BADGE_PRESETS = ["Verified", "Gamer", "Artist", "Designer", "Creator", "Photographer", "Music", "Technology", "Writer", "Editor", "Collector"];
 const RESERVED_LABELS = /\b(admin|administrator|dev|developer|staff|moderator)\b/i;
 const normalizeBadge = (value) => /^dono$/i.test(String(value).trim()) ? "Owner" : String(value).trim();
 const isBlockedBadge = (value) => {
-  const reserved = RESERVED_LABELS.test(String(value)) || /\b(owner|dono|founder|official|oficial)\b/i.test(String(value));
+  const label = String(value || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
+  const compactLabel = label.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const membershipBadge = /vip|premium/.test(compactLabel);
+  const reserved = RESERVED_LABELS.test(label) || /\b(owner|dono|founder|official|oficial)\b/i.test(label) || membershipBadge;
   return reserved && !isOfficialProfileContext();
 };
 
