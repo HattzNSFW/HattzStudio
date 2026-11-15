@@ -944,6 +944,17 @@ function renderFrame() {
   const name = profile.moldura || "none";
 
   const artwork = name;
+  const remoteFrame = window.HATTZ_REMOTE_FRAMES?.[name];
+  if (remoteFrame?.imageData) {
+    frame.className = "avatar-frame rarity-custom";
+    const img = document.createElement("img");
+    img.src = remoteFrame.imageData; img.alt = ""; img.className = "remote-avatar-frame";
+    const avatarAdjust = profile.studio?.avatar || {};
+    img.style.transform = `translate(${Number(remoteFrame.x||0)+Number(avatarAdjust.frameX||0)}px,${Number(remoteFrame.y||0)+Number(avatarAdjust.frameY||0)}px) scale(${Number(remoteFrame.scale||100)*Number(avatarAdjust.frameScale||100)/10000})`;
+    img.style.width = "100%"; img.style.height = "100%"; img.style.objectFit = "contain"; img.style.pointerEvents = "none";
+    frame.replaceChildren(img);
+    return;
+  }
 
   const rarity = ["none", "common", "rare", "epic", "legendary", "elite"].includes(profile.raridadeMoldura)
     ? profile.raridadeMoldura
@@ -1082,6 +1093,8 @@ function applyStudioSettings() {
     frame.style.setProperty("--studio-frame-thickness", `${avatar.thickness || 2}px`);
     frame.style.setProperty("--studio-frame-lighting", `${Number(avatar.lighting || 0) / 100}`);
     frame.style.translate = `${Number(avatar.offsetX || 0)}px ${Number(avatar.offsetY || 0)}px`;
+    const custom = frame.querySelector(".remote-avatar-frame");
+    if (custom) { const asset=window.HATTZ_REMOTE_FRAMES?.[profile.moldura]||{}; custom.style.transform = `translate(${Number(asset.x||0)+Number(avatar.frameX||0)}px,${Number(asset.y||0)+Number(avatar.frameY||0)}px) scale(${Number(asset.scale||100)*Number(avatar.frameScale||100)/10000})`; }
   }
   const cards = [...document.querySelectorAll(".stat-card, .detail-card")];
   cards.forEach((card, index) => {
@@ -1123,6 +1136,9 @@ async function loadProfileEntitlements() {
         roleChip.style.removeProperty("--role-accent");
       }
     }
+    if (data.profileTheme) applyColors(data.profileTheme);
+    window.HATTZ_REMOTE_FRAMES = Object.fromEntries((data.frames || []).map(frame => { let asset={}; try { asset=JSON.parse(frame.asset_json||"{}"); } catch {} return [frame.id,asset]; }));
+    if (profile.moldura && window.HATTZ_REMOTE_FRAMES[profile.moldura]?.imageData) renderFrame();
     const badges = $("badges");
     for (const role of (data.roles || []).slice(1)) {
       const chip = document.createElement("span");
@@ -1135,7 +1151,8 @@ async function loadProfileEntitlements() {
     for (const item of (data.badges || [])) {
       const chip = document.createElement("span");
       chip.className = `badge hattz-collectible rarity-${["basic","premium","elite"].includes(item.rarity) ? item.rarity : "basic"}`;
-      chip.textContent = `${item.icon || "✦"} ${item.name}`;
+      if (String(item.icon||"").startsWith("data:image/png;base64,")) { const img=document.createElement("img"); img.src=item.icon; img.alt=""; img.width=18; img.height=18; img.style.objectFit="contain"; chip.append(img,document.createTextNode(` ${item.name}`)); }
+      else chip.textContent = `${item.icon || "✦"} ${item.name}`;
       chip.title = item.description || item.name;
       badges.append(chip);
     }
@@ -3808,7 +3825,9 @@ async function init() {
 }
 
 window.addEventListener("message", (event) => {
-  if (event.origin !== window.location.origin || event.data?.type !== "HATTZ_STUDIO_PREVIEW_REFRESH" || IS_PUBLIC_VIEW) return;
+  if (event.origin !== window.location.origin || IS_PUBLIC_VIEW) return;
+  if (event.data?.type === "HATTZ_STUDIO_THEME_PREVIEW") { applyColors(event.data.theme || {}); return; }
+  if (event.data?.type !== "HATTZ_STUDIO_PREVIEW_REFRESH") return;
   try {
     loadProfile();
     applyMediaOpacitySettings();

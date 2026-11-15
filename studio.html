@@ -18,6 +18,7 @@
         <button class="studio-nav" data-panel="avatar">◇ <span>Avatar Lab</span></button>
         <button class="studio-nav" data-panel="frames">✧ <span>Hättz Frames</span></button>
         <button class="studio-nav" data-panel="badges">✦ <span>Insígnias</span></button>
+        <button class="studio-nav" data-panel="theme" id="themeNav" hidden>◈ <span>Tema exclusivo</span></button>
         <div class="side-note">As alterações são salvas no perfil local selecionado. Seus outros perfis permanecem independentes.</div>
       </aside>
       <section class="studio-workspace">
@@ -45,6 +46,9 @@
             <label>Posição horizontal <output id="avatarOffsetXOut">0 px</output><input data-avatar="offsetX" type="range" min="-30" max="30" value="0"></label>
             <label>Posição vertical <output id="avatarOffsetYOut">0 px</output><input data-avatar="offsetY" type="range" min="-30" max="30" value="0"></label>
             <label>Iluminação <output id="avatarLightingOut">65%</output><input data-avatar="lighting" type="range" min="0" max="100" value="65"></label>
+            <label>Escala da moldura PNG <output id="avatarFrameScaleOut">100%</output><input data-avatar="frameScale" type="range" min="25" max="200" value="100"></label>
+            <label>Ajuste horizontal da moldura <output id="avatarFrameXOut">0 px</output><input data-avatar="frameX" type="range" min="-100" max="100" value="0"></label>
+            <label>Ajuste vertical da moldura <output id="avatarFrameYOut">0 px</output><input data-avatar="frameY" type="range" min="-100" max="100" value="0"></label>
           </div></article>
         </section>
         <section class="studio-panel" id="panel-frames">
@@ -64,6 +68,17 @@
             <button class="frame-option" data-frame="skulls"><span class="frame-preview">☠</span><b>Skulls</b><small>Elite</small></button>
             <button class="frame-option" data-frame="thorn"><span class="frame-preview">❧</span><b>Thorn</b><small>Premium</small></button>
           </div><p class="muted">A coleção local inclui os estilos vetoriais existentes e a nova moldura Amethyst. O catálogo remoto pode ser administrado pelo Control após aplicar a migração.</p></article>
+        </section>
+        <section class="studio-panel" id="panel-theme" hidden>
+          <div class="heading"><div><p class="eyebrow">EXCLUSIVE ROLE BENEFIT</p><h1>Tema exclusivo</h1><p>Personalize as cores do seu próprio perfil. O acesso depende dos cargos configurados no Control.</p></div></div>
+          <article class="glass editor-card"><div class="control-grid">
+            <label>Fundo <input type="color" data-theme="background" value="#0b0a10"></label>
+            <label>Gradiente <input type="color" data-theme="gradient" value="#292333"></label>
+            <label>Cartões <input type="color" data-theme="card" value="#14121b"></label>
+            <label>Destaque <input type="color" data-theme="accent" value="#a78bfa"></label>
+            <label>Texto <input type="color" data-theme="text" value="#f4f0fa"></label>
+            <label>Bordas <input type="color" data-theme="border" value="#302a3a"></label>
+          </div><button id="saveProfileTheme" class="primary" type="button">Salvar tema no perfil</button><p class="muted" id="themeAccessNote">Verificando acesso...</p></article>
         </section>
         <section class="studio-panel" id="panel-badges">
           <div class="heading"><div><p class="eyebrow">COLLECTIBLES</p><h1>Insígnias</h1><p>Consulte a coleção disponível no catálogo do Hättz.</p></div><button id="reloadCatalog" class="secondary">Atualizar catálogo</button></div>

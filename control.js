@@ -247,11 +247,12 @@
       $('roleDefinitionList').innerHTML = roles.map(role => `<div class="role-definition-row"><span class="role-preview-chip" style="--role-accent:${escapeHtml(role.color)}">${escapeHtml(role.label)}</span><span class="role-definition-meta">${escapeHtml(role.id)}</span><button type="button" class="quiet-button" data-edit-role="${escapeHtml(role.id)}">Editar</button><button type="button" class="quiet-button danger-action" data-delete-role="${escapeHtml(role.id)}">Remover</button></div>`).join('') || '<p class="empty">Nenhum cargo cadastrado. Crie o primeiro acima.</p>';
       $('roleDefinitionList').querySelectorAll('[data-edit-role]').forEach(button => button.addEventListener('click', () => editRoleDefinition(roles.find(role => role.id === button.dataset.editRole))));
       $('roleDefinitionList').querySelectorAll('[data-delete-role]').forEach(button => button.addEventListener('click', () => removeRoleDefinition(button.dataset.deleteRole)));
-      $('grantBadgeId').innerHTML = badges.map(x => `<option value="${escapeHtml(x.id)}">${escapeHtml(x.name)} · ${escapeHtml(x.rarity)}</option>`).join('') || '<option value="">Nenhuma tag disponível</option>';
-      $('grantFrameId').innerHTML = frames.map(x => `<option value="${escapeHtml(x.id)}">${escapeHtml(x.name)} · ${escapeHtml(x.rarity)}</option>`).join('') || '<option value="">Nenhuma moldura disponível</option>';
-      $('ecosystemCatalog').innerHTML = [...badges.map(x => ({...x,kind:'Tag',catalogKind:'badges'})),...frames.map(x=>({...x,kind:'Moldura',catalogKind:'frames'}))].map(x=>`<div class="audit-item"><span class="audit-time">${escapeHtml(x.kind)}</span><div><div class="audit-action">${escapeHtml(x.name)}</div><div class="audit-detail">${escapeHtml(x.description || '')}</div></div><span class="audit-target">${escapeHtml(x.rarity)}</span><button type="button" class="quiet-button danger-action" data-delete-catalog="${escapeHtml(x.id)}" data-catalog-kind="${x.catalogKind}">Remover</button></div>`).join('') || '<p class="empty">Nenhuma tag ou moldura cadastrada. Crie cada item manualmente.</p>';
+      $('grantBadgeId').innerHTML = badges.map(x => `<option value="${escapeHtml(x.id)}">${escapeHtml(x.name)} · ${escapeHtml(x.rarityLabel || x.rarity)}</option>`).join('') || '<option value="">Nenhuma tag disponível</option>';
+      $('grantFrameId').innerHTML = frames.map(x => `<option value="${escapeHtml(x.id)}">${escapeHtml(x.name)} · ${escapeHtml(x.rarityLabel || x.rarity)}</option>`).join('') || '<option value="">Nenhuma moldura disponível</option>';
+      $('ecosystemCatalog').innerHTML = [...badges.map(x => ({...x,kind:'Tag',catalogKind:'badges'})),...frames.map(x=>({...x,kind:'Moldura',catalogKind:'frames'}))].map(x=>`<div class="audit-item"><span class="audit-time">${escapeHtml(x.kind)}</span><div><div class="audit-action">${escapeHtml(x.name)}</div><div class="audit-detail">${escapeHtml(x.description || '')}</div></div><span class="audit-target">${escapeHtml(x.rarityLabel || x.rarity)}</span><button type="button" class="quiet-button danger-action" data-delete-catalog="${escapeHtml(x.id)}" data-catalog-kind="${x.catalogKind}">Remover</button></div>`).join('') || '<p class="empty">Nenhuma tag ou moldura cadastrada. Crie cada item manualmente.</p>';
       $('ecosystemCatalog').querySelectorAll('[data-delete-catalog]').forEach(button => button.addEventListener('click', () => removeCatalogItem(button.dataset.catalogKind, button.dataset.deleteCatalog)));
       await loadRoleAssignments();
+      await loadStudioAccess();
     } catch (error) { notify(error.message); }
   }
   async function loadRoleAssignments() {
@@ -301,11 +302,28 @@
     } catch (error) { notify(error.message); }
   }
 
+  async function loadStudioAccess() {
+    try {
+      const data = await api('/api/admin/studio-access');
+      const selected = new Set(data.roleIds || []);
+      $('studioAccessRoles').innerHTML = (data.roles || []).map(role => `<label class="role-access-option"><input type="checkbox" value="${escapeHtml(role.id)}" ${selected.has(role.id)?'checked':''}><span>${escapeHtml(role.label)}</span><small>${escapeHtml(role.id)}</small></label>`).join('') || '<p class="empty">Crie cargos antes de configurar o acesso.</p>';
+    } catch(error) { $('studioAccessRoles').innerHTML = `<p class="empty">${escapeHtml(error.message)}</p>`; }
+  }
+  async function saveStudioAccess() {
+    const roleIds = [...$('studioAccessRoles').querySelectorAll('input[type="checkbox"]:checked')].map(input=>input.value);
+    try { await api('/api/admin/studio-access',{method:'PUT',body:JSON.stringify({roleIds})}); notify('Permissões do editor do Studio atualizadas.'); }
+    catch(error) { notify(error.message); }
+  }
+
   async function saveCatalogItem() {
     const kind = $('catalogKind').value, id = $('catalogId').value.trim().toLowerCase();
     if (!/^[a-z0-9][a-z0-9_-]{1,47}$/.test(id)) { notify('Use um ID de 2 a 48 caracteres: letras, números, hífen ou sublinhado.'); return; }
-    const body = { name:$('catalogName').value, description:$('catalogDescription').value, rarity:$('catalogRarity').value };
-    if (kind === 'badges') { body.category=$('catalogCategory').value; body.icon=$('catalogIcon').value; }
+    const body = { name:$('catalogName').value, description:$('catalogDescription').value, rarityLevel:Number($('catalogRarity').value) };
+    const readPng = (file, limit) => new Promise((resolve,reject)=>{ if(!file){resolve("");return;} if(file.type!=="image/png"||file.size>limit){reject(new Error(`Envie um PNG de até ${Math.round(limit/1024)} KB.`));return;} const reader=new FileReader(); reader.onload=()=>resolve(String(reader.result)); reader.onerror=()=>reject(new Error("Não foi possível ler o PNG.")); reader.readAsDataURL(file); });
+    try {
+      if (kind === 'badges') { body.category=$('catalogCategory').value; body.icon=await readPng($('catalogIconFile').files?.[0],128*1024)||$('catalogIcon').value||'✦'; }
+      else { body.asset={ imageData: await readPng($('catalogFrameFile').files?.[0],300*1024), scale:Number($('catalogFrameScale').value), x:Number($('catalogFrameX').value), y:Number($('catalogFrameY').value) }; }
+    } catch(error) { notify(error.message); return; }
     try { await api(`/api/admin/catalog/${kind}/${encodeURIComponent(id)}`, {method:'PUT',body:JSON.stringify(body)}); notify('Item salvo no catálogo.'); await loadEcosystem(); }
     catch(error) { notify(error.message); }
   }
@@ -464,8 +482,9 @@
   $("nextPage").addEventListener("click", () => { page = Math.min(totalPages, page + 1); loadProfiles(); });
   $("reloadStorage").addEventListener("click", loadStorage);
   $("reloadEcosystem").addEventListener("click", loadEcosystem);
-  $("catalogKind").addEventListener("change", () => { $("catalogBadgeFields").hidden = $("catalogKind").value !== "badges"; });
+  $("catalogKind").addEventListener("change", () => { const badges=$("catalogKind").value === "badges"; $("catalogBadgeFields").hidden = !badges; $("catalogFrameFields").hidden = badges; });
   $("saveCatalogItem").addEventListener("click", saveCatalogItem);
+  $("saveStudioAccess").addEventListener("click", saveStudioAccess);
   $("saveRoleDefinition").addEventListener("click", saveRoleDefinition);
   $("newRoleDefinition").addEventListener("click", resetRoleDefinition);
   $("saveVip").addEventListener("click", saveVip);

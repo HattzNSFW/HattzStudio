@@ -8,3 +8,5 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 button:hover{filter:brightness(1.07)}
 .panel,.studio-panel,.glass{box-shadow:0 18px 55px rgba(0,0,0,.2),inset 0 1px rgba(255,255,255,.035)}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+.studio-nav[hidden],.studio-panel[hidden]{display:none!important}

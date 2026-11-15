@@ -70,3 +70,7 @@ tbody tr:hover td{background:rgba(185,154,240,.045)}
 .role-preview-chip{justify-self:start;border:1px solid color-mix(in srgb,var(--role-accent) 45%,transparent);border-radius:999px;padding:6px 11px;background:color-mix(in srgb,var(--role-accent) 13%,transparent);color:var(--role-accent);font-size:.8rem;font-weight:700}
 .role-definition-meta{color:var(--muted);font-size:.76rem;overflow-wrap:anywhere}
 @media(max-width:760px){.role-design-grid{grid-template-columns:1fr}.role-theme-colors{grid-template-columns:repeat(3,minmax(0,1fr))}.role-definition-row{grid-template-columns:1fr auto}.role-definition-meta{grid-column:1}}
+
+.role-access-option{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:center;padding:10px 12px;border:1px solid var(--border,#302a3a);border-radius:12px;margin:7px 0;background:rgba(255,255,255,.025)}
+.role-access-option input{grid-row:span 2;accent-color:var(--accent,#a78bfa);width:17px;height:17px}
+.role-access-option span{font-weight:700}.role-access-option small{opacity:.62;font-size:11px}
