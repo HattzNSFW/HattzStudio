@@ -242,13 +242,29 @@
     try {
       const [data, roleData] = await Promise.all([api('/api/catalog', {}, false), api('/api/admin/roles')]);
       const frames = data.frames || [], badges = data.badges || [];
-      $('grantRoleId').innerHTML = (roleData.roles || []).map(x => `<option value="${escapeHtml(x.id)}">${escapeHtml(x.label)}</option>`).join('') || '<option value="">Nenhum cargo disponível</option>';
-      $('roleDefinitionList').innerHTML = (roleData.roles || []).map(role => `<div class="role-definition-row"><span class="role-preview-chip" style="--role-accent:${escapeHtml(role.color)}">${escapeHtml(role.label)}</span><span class="role-definition-meta">${escapeHtml(role.id)}</span><button type="button" class="quiet-button" data-edit-role="${escapeHtml(role.id)}">Editar</button></div>`).join('') || '<p class="empty">Nenhum cargo cadastrado.</p>';
-      $('roleDefinitionList').querySelectorAll('[data-edit-role]').forEach(button => button.addEventListener('click', () => editRoleDefinition((roleData.roles || []).find(role => role.id === button.dataset.editRole))));
-      $('grantBadgeId').innerHTML = badges.map(x => `<option value="${escapeHtml(x.id)}">${escapeHtml(x.name)} · ${escapeHtml(x.rarity)}</option>`).join('');
-      $('grantFrameId').innerHTML = frames.map(x => `<option value="${escapeHtml(x.id)}">${escapeHtml(x.name)} · ${escapeHtml(x.rarity)}</option>`).join('');
-      $('ecosystemCatalog').innerHTML = [...badges.map(x => ({...x,kind:'Insígnia'})),...frames.map(x=>({...x,kind:'Moldura'}))].map(x=>`<div class="audit-item"><span class="audit-time">${escapeHtml(x.kind)}</span><div><div class="audit-action">${escapeHtml(x.name)}</div><div class="audit-detail">${escapeHtml(x.description || '')}</div></div><span class="audit-target">${escapeHtml(x.rarity)}</span></div>`).join('') || '<p class="empty">Catálogo vazio.</p>';
+      const roles = roleData.roles || [];
+      $('grantRoleId').innerHTML = roles.map(x => `<option value="${escapeHtml(x.id)}">${escapeHtml(x.label)}</option>`).join('') || '<option value="">Nenhum cargo disponível</option>';
+      $('roleDefinitionList').innerHTML = roles.map(role => `<div class="role-definition-row"><span class="role-preview-chip" style="--role-accent:${escapeHtml(role.color)}">${escapeHtml(role.label)}</span><span class="role-definition-meta">${escapeHtml(role.id)}</span><button type="button" class="quiet-button" data-edit-role="${escapeHtml(role.id)}">Editar</button><button type="button" class="quiet-button danger-action" data-delete-role="${escapeHtml(role.id)}">Remover</button></div>`).join('') || '<p class="empty">Nenhum cargo cadastrado. Crie o primeiro acima.</p>';
+      $('roleDefinitionList').querySelectorAll('[data-edit-role]').forEach(button => button.addEventListener('click', () => editRoleDefinition(roles.find(role => role.id === button.dataset.editRole))));
+      $('roleDefinitionList').querySelectorAll('[data-delete-role]').forEach(button => button.addEventListener('click', () => removeRoleDefinition(button.dataset.deleteRole)));
+      $('grantBadgeId').innerHTML = badges.map(x => `<option value="${escapeHtml(x.id)}">${escapeHtml(x.name)} · ${escapeHtml(x.rarity)}</option>`).join('') || '<option value="">Nenhuma tag disponível</option>';
+      $('grantFrameId').innerHTML = frames.map(x => `<option value="${escapeHtml(x.id)}">${escapeHtml(x.name)} · ${escapeHtml(x.rarity)}</option>`).join('') || '<option value="">Nenhuma moldura disponível</option>';
+      $('ecosystemCatalog').innerHTML = [...badges.map(x => ({...x,kind:'Tag',catalogKind:'badges'})),...frames.map(x=>({...x,kind:'Moldura',catalogKind:'frames'}))].map(x=>`<div class="audit-item"><span class="audit-time">${escapeHtml(x.kind)}</span><div><div class="audit-action">${escapeHtml(x.name)}</div><div class="audit-detail">${escapeHtml(x.description || '')}</div></div><span class="audit-target">${escapeHtml(x.rarity)}</span><button type="button" class="quiet-button danger-action" data-delete-catalog="${escapeHtml(x.id)}" data-catalog-kind="${x.catalogKind}">Remover</button></div>`).join('') || '<p class="empty">Nenhuma tag ou moldura cadastrada. Crie cada item manualmente.</p>';
+      $('ecosystemCatalog').querySelectorAll('[data-delete-catalog]').forEach(button => button.addEventListener('click', () => removeCatalogItem(button.dataset.catalogKind, button.dataset.deleteCatalog)));
+      await loadRoleAssignments();
     } catch (error) { notify(error.message); }
+  }
+  async function loadRoleAssignments() {
+    try {
+      const data = await api('/api/admin/role-assignments');
+      const assignments = [
+        ...(data.assignments || []).map(item => ({ ...item, kind: 'Cargo', label: item.roleLabel, valid: item.expiresAt ? `Até ${formatDate(item.expiresAt)}` : 'Permanente' })),
+        ...(data.tagAssignments || []).map(item => ({ ...item, kind: 'Tag', label: item.tagLabel, valid: 'Atribuída' }))
+      ];
+      $('roleAssignmentsList').innerHTML = assignments.length
+        ? assignments.map(item => `<div class="audit-item"><span class="audit-time">${escapeHtml(item.kind)}</span><div><div class="audit-action">${escapeHtml(item.label)}</div><div class="audit-detail">${escapeHtml(item.profileName)}${item.username ? ` · @${escapeHtml(item.username)}` : ''} · ${escapeHtml(item.profileCode)}</div></div><span class="audit-target">${escapeHtml(item.valid)}</span></div>`).join('')
+        : '<p class="empty">Nenhum perfil recebeu cargos ou tags ainda.</p>';
+    } catch (error) { $('roleAssignmentsList').innerHTML = `<p class="empty">${escapeHtml(error.message)}</p>`; }
   }
   const ROLE_THEME_FIELDS = { background: 'roleThemeBackground', gradient: 'roleThemeGradient', card: 'roleThemeCard', accent: 'roleThemeAccent', text: 'roleThemeText', border: 'roleThemeBorder' };
   function editRoleDefinition(role) {
@@ -293,6 +309,23 @@
     try { await api(`/api/admin/catalog/${kind}/${encodeURIComponent(id)}`, {method:'PUT',body:JSON.stringify(body)}); notify('Item salvo no catálogo.'); await loadEcosystem(); }
     catch(error) { notify(error.message); }
   }
+  async function removeRoleDefinition(id) {
+    if (!id || !window.confirm(`Remover o cargo "${id}"? As atribuições desse cargo deixarão de aparecer como ativas.`)) return;
+    try {
+      await api(`/api/admin/roles/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      notify('Cargo removido do catálogo.');
+      resetRoleDefinition();
+      await Promise.all([loadEcosystem(), loadRoleAssignments()]);
+    } catch (error) { notify(error.message); }
+  }
+  async function removeCatalogItem(kind, id) {
+    if (!id || !window.confirm(`Remover "${id}" do catálogo?`)) return;
+    try {
+      await api(`/api/admin/catalog/${kind}/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      notify('Item removido do catálogo.');
+      await loadEcosystem();
+    } catch (error) { notify(error.message); }
+  }
   function entitlementCode() { const raw=$('entitlementCode').value.trim().toUpperCase(); return raw.replace(/^HTZ-?/,'').replace(/-/g,''); }
   async function saveVip() {
     const code=entitlementCode(); if(!/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{10}$/.test(code)){notify('Informe um código de perfil válido.');return;}
@@ -309,7 +342,7 @@
     const isBadge=type==='badges', id=$(isBadge?'grantBadgeId':'grantFrameId').value;
     if(!id){notify('Cadastre ou selecione um item primeiro.');return;}
     const body=isBadge?{badgeId:id,action}:{frameId:id,action};
-    try{await api(`/api/admin/profiles/${code}/${type}`,{method:'POST',body:JSON.stringify(body)});notify(`${isBadge?'Insígnia':'Moldura'} ${action==='grant'?'concedida':'revogada'}.`);}
+    try{await api(`/api/admin/profiles/${code}/${type}`,{method:'POST',body:JSON.stringify(body)});notify(`${isBadge?'Tag':'Moldura'} ${action==='grant'?'concedida':'revogada'}.`);await Promise.all([loadProfileBadges(),loadRoleAssignments()]);}
     catch(error){notify(error.message);}
   }
 
@@ -324,7 +357,7 @@
     try {
       await api(`/api/admin/profiles/${code}/roles`, { method: 'POST', body: JSON.stringify({ roleId, action, expiresAt: action === 'grant' ? expiresAt : null }) });
       notify(action === 'grant' ? 'Cargo concedido.' : 'Cargo revogado.');
-      await loadProfileRoles();
+      await Promise.all([loadProfileRoles(), loadRoleAssignments()]);
     } catch (error) { notify(error.message); }
   }
   async function loadProfileRoles() {
@@ -336,6 +369,24 @@
         ? data.roles.map(role => `<div class="role-row"><strong><span class="role-preview-chip" style="--role-accent:${escapeHtml(role.color || '#b99af0')}">${escapeHtml(role.label)}</span></strong><span>${role.expires_at ? `Até ${formatDate(role.expires_at)}` : 'Sem validade'}</span></div>`).join('')
         : '<p class="empty">Este perfil não possui cargos concedidos.</p>';
     } catch (error) { $('profileRoleList').innerHTML = `<p class="empty">${escapeHtml(error.message)}</p>`; }
+  }
+
+  async function loadProfileBadges() {
+    const code = entitlementCode();
+    if (!/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{10}$/.test(code)) { notify('Informe um código de perfil válido.'); return; }
+    try {
+      const [badgeData, frameData] = await Promise.all([
+        api(`/api/admin/profiles/${code}/badges`),
+        api(`/api/admin/profiles/${code}/frames`)
+      ]);
+      const items = [
+        ...(badgeData.badges || []).map(item => ({ kind: 'Tag', ...item })),
+        ...(frameData.frames || []).map(item => ({ kind: 'Moldura', ...item }))
+      ];
+      $('profileBadgeList').innerHTML = items.length
+        ? items.map(item => `<div class="role-row"><strong>${escapeHtml(item.kind)} · ${escapeHtml(item.name)}</strong><span>${escapeHtml(item.id)}</span></div>`).join('')
+        : '<p class="empty">Este perfil não possui tags ou molduras atribuídas.</p>';
+    } catch (error) { $('profileBadgeList').innerHTML = `<p class="empty">${escapeHtml(error.message)}</p>`; }
   }
 
   async function loadIp() {
@@ -354,9 +405,12 @@
         const activity = `${Number(event.event_count || 1)} evento(s)<span class="sub-cell">Primeiro: ${escapeHtml(formatDate(event.first_seen || event.created_at))}<br>Último: ${escapeHtml(formatDate(event.last_seen || event.created_at))}</span>`;
         const eventType = String(event.event_type || "evento").replace(/[._-]+/g, " ");
         const ipVersion = String(event.ip || "").includes(":") ? "IPv6" : "IPv4";
-        return `<tr><td><span class="code-cell">${escapeHtml(event.ip || "Criptografado")}</span><span class="sub-cell">${ipVersion}</span></td><td>${escapeHtml(event.profile_code || "—")}</td><td>${escapeHtml(location)}</td><td>${escapeHtml(isp)}</td><td>${escapeHtml(client.device || "Desconhecido")}</td><td>${escapeHtml([client.browser,client.os].filter(Boolean).join(" · ") || "—")}</td><td>${escapeHtml(risk)}${event.risk_score != null ? `<span class="sub-cell">Pontuação de risco ${escapeHtml(event.risk_score)}/100</span>` : ""}</td><td>${activity}</td><td>${escapeHtml(eventType)}</td></tr>`;
-      }).join("") : '<tr><td colspan="9" class="empty">Nenhum evento encontrado.</td></tr>';
-    } catch (error) { $("ipTable").innerHTML = `<tr><td colspan="9" class="empty">${escapeHtml(error.message)}</td></tr>`; }
+        const browser = [client.browser, client.browserVersion].filter(Boolean).join(' ');
+        const os = [client.os, client.osVersion].filter(Boolean).join(' ');
+        const device = [client.device, client.deviceModel].filter(Boolean).join(' · ');
+        return `<tr><td><span class="code-cell">${escapeHtml(event.ip || "Criptografado")}</span><span class="sub-cell">${ipVersion}</span></td><td>${escapeHtml(event.profile_code || "—")}</td><td>${escapeHtml(location)}</td><td>${escapeHtml(isp)}</td><td>${escapeHtml(device || "Desconhecido")}</td><td>${escapeHtml(browser || "—")}</td><td>${escapeHtml(os || "—")}</td><td>${escapeHtml(risk)}${event.risk_score != null ? `<span class="sub-cell">Pontuação de risco ${escapeHtml(event.risk_score)}/100</span>` : ""}</td><td>${activity}</td><td>${escapeHtml(eventType)}</td></tr>`;
+      }).join("") : '<tr><td colspan="10" class="empty">Nenhum evento encontrado.</td></tr>';
+    } catch (error) { $("ipTable").innerHTML = `<tr><td colspan="10" class="empty">${escapeHtml(error.message)}</td></tr>`; }
     finally { if (reloadButton) { reloadButton.disabled = false; reloadButton.textContent = "↻ Atualizar"; } }
   }
   async function clearIpEvents() {
@@ -418,6 +472,8 @@
   $("grantRole").addEventListener("click", () => mutateProfileRole("grant"));
   $("revokeRole").addEventListener("click", () => mutateProfileRole("revoke"));
   $("loadProfileRoles").addEventListener("click", loadProfileRoles);
+  $("loadProfileBadges").addEventListener("click", loadProfileBadges);
+  $("reloadRoleAssignments").addEventListener("click", loadRoleAssignments);
   $("grantBadge").addEventListener("click", () => mutateProfileCollectible("badges", "grant"));
   $("revokeBadge").addEventListener("click", () => mutateProfileCollectible("badges", "revoke"));
   $("grantFrame").addEventListener("click", () => mutateProfileCollectible("frames", "grant"));

@@ -70,15 +70,15 @@
           </section>
 
           <section class="view" id="view-ecosystem">
-            <div class="page-heading"><div><p class="eyebrow">HÄTTZ ECOSYSTEM</p><h1>Ecossistema</h1><p class="muted">Catálogos, molduras, insígnias e benefícios VIP por perfil.</p></div><button id="reloadEcosystem" class="quiet-button">↻ Atualizar</button></div>
+            <div class="page-heading"><div><p class="eyebrow">HÄTTZ ECOSYSTEM</p><h1>Ecossistema</h1><p class="muted">Crie cargos, tags e molduras do zero e escolha exatamente quais perfis recebem cada item.</p></div><button id="reloadEcosystem" class="quiet-button">↻ Atualizar</button></div>
             <div class="panel-grid">
               <article class="panel glass"><div class="panel-heading"><div><p class="eyebrow">CATALOGUE</p><h2>Criar ou atualizar item</h2></div></div>
-                <div class="field"><label for="catalogKind">Tipo</label><select id="catalogKind"><option value="badges">Insígnia</option><option value="frames">Moldura</option></select></div>
+                <div class="field"><label for="catalogKind">Tipo</label><select id="catalogKind"><option value="badges">Tag</option><option value="frames">Moldura</option></select></div>
                 <div class="field"><label for="catalogId">ID único</label><input id="catalogId" maxlength="48" placeholder="ex.: early-supporter"></div>
                 <div class="field"><label for="catalogName">Nome</label><input id="catalogName" maxlength="64" placeholder="Nome exibido"></div>
                 <div class="field"><label for="catalogDescription">Descrição</label><textarea id="catalogDescription" maxlength="240" rows="2"></textarea></div>
                 <div class="field"><label for="catalogRarity">Raridade</label><select id="catalogRarity"><option value="basic">Basic</option><option value="premium">Premium</option><option value="elite">Elite</option></select></div>
-                <div class="field" id="catalogBadgeFields"><label for="catalogCategory">Categoria</label><input id="catalogCategory" maxlength="32" value="community"><label for="catalogIcon">Ícone</label><input id="catalogIcon" maxlength="4" value="✦"></div>
+                <div class="field" id="catalogBadgeFields"><label for="catalogCategory">Categoria</label><input id="catalogCategory" maxlength="32" value="" placeholder="Categoria personalizada"><label for="catalogIcon">Ícone</label><input id="catalogIcon" maxlength="4" value="" placeholder="Ícone"></div>
                 <button id="saveCatalogItem" class="primary">Salvar item</button>
               </article>
               <article class="panel glass"><div class="panel-heading"><div><p class="eyebrow">PROFILE BENEFITS</p><h2>Gerenciar benefícios</h2></div></div>
@@ -86,7 +86,7 @@
                 <div class="field"><label for="vipEnabled">Acesso VIP</label><select id="vipEnabled"><option value="true">Conceder / manter ativo</option><option value="false">Revogar</option></select></div>
                 <div class="field"><label for="vipExpiry">Validade (opcional)</label><input id="vipExpiry" type="datetime-local"></div>
                 <button id="saveVip" class="secondary">Atualizar VIP</button><p class="muted">Benefício aplicado no backend: limite individual de mídia de 500 MiB enquanto o VIP estiver ativo (250 MiB no plano padrão). O teto global do Hättz não muda.</p>
-                <div class="field"><label for="grantBadgeId">Insígnia</label><select id="grantBadgeId"></select><button id="grantBadge" class="secondary">Conceder insígnia</button><button id="revokeBadge" class="quiet-button">Revogar insígnia</button></div>
+                <div class="field"><label for="grantBadgeId">Tag</label><select id="grantBadgeId"></select><button id="grantBadge" class="secondary">Conceder tag</button><button id="revokeBadge" class="quiet-button">Revogar tag</button></div>
                 <div class="field"><label for="grantFrameId">Moldura</label><select id="grantFrameId"></select><button id="grantFrame" class="secondary">Conceder moldura</button><button id="revokeFrame" class="quiet-button">Revogar moldura</button></div>
                 <div class="field role-manager">
                   <label for="grantRoleId">Cargo do perfil</label>
@@ -95,6 +95,8 @@
                   <input id="roleExpiry" type="datetime-local">
                   <div class="inline-actions"><button id="grantRole" class="secondary" type="button">Conceder cargo</button><button id="revokeRole" class="quiet-button" type="button">Revogar cargo</button><button id="loadProfileRoles" class="quiet-button" type="button">Ver cargos</button></div>
                   <div id="profileRoleList" class="role-list"><p class="empty">Informe um perfil para consultar os cargos.</p></div>
+                  <div class="inline-actions"><button id="loadProfileBadges" class="quiet-button" type="button">Ver tags e molduras atribuídas</button></div>
+                  <div id="profileBadgeList" class="role-list"><p class="empty">As tags e molduras atribuídas aparecerão aqui.</p></div>
                 </div>
                 <p class="muted">VIP é um benefício separado dos cargos. Cargos administrativos e reservados não aparecem nesta lista.</p>
                 <p class="muted">Todas as operações são validadas no Worker e registradas na auditoria.</p>
@@ -121,28 +123,8 @@
               <div id="roleDefinitionList" class="role-definition-list"><p class="empty">Carregando cargos...</p></div>
               <p class="muted">Os temas são aplicados somente ao perfil que recebeu o cargo ativo. Cargos administrativos e VIP não podem ser criados por este editor.</p>
             </article>
-            <article class="panel glass role-design-panel">
-              <div class="panel-heading"><div><p class="eyebrow">SPECIAL IDENTITIES</p><h2>Cargos especiais e temas exclusivos</h2><p class="muted">Crie cargos personalizados com identidade visual própria. Depois, conceda-os individualmente pelo código do perfil.</p></div></div>
-              <div class="role-design-grid">
-                <div class="field"><label for="roleDefinitionId">ID único</label><input id="roleDefinitionId" maxlength="48" placeholder="ex.: celestial-artist"></div>
-                <div class="field"><label for="roleDefinitionLabel">Nome do cargo</label><input id="roleDefinitionLabel" maxlength="40" placeholder="Celestial Artist"></div>
-                <div class="field"><label for="roleDefinitionColor">Cor do cargo</label><input id="roleDefinitionColor" type="color" value="#b99af0"></div>
-                <div class="field"><label for="roleDefinitionDescription">Descrição</label><input id="roleDefinitionDescription" maxlength="180" placeholder="Identidade especial da comunidade"></div>
-              </div>
-              <p class="eyebrow role-theme-eyebrow">TEMA EXCLUSIVO DO CARGO</p>
-              <div class="role-theme-colors">
-                <label>Fundo <input id="roleThemeBackground" type="color" value="#0b0a10"></label>
-                <label>Gradiente <input id="roleThemeGradient" type="color" value="#292333"></label>
-                <label>Cartões <input id="roleThemeCard" type="color" value="#14121b"></label>
-                <label>Destaque <input id="roleThemeAccent" type="color" value="#a78bfa"></label>
-                <label>Texto <input id="roleThemeText" type="color" value="#f4f0fa"></label>
-                <label>Bordas <input id="roleThemeBorder" type="color" value="#302a3a"></label>
-              </div>
-              <div class="inline-actions"><button id="saveRoleDefinition" class="primary" type="button">Salvar cargo especial</button><button id="newRoleDefinition" class="quiet-button" type="button">Novo cargo</button></div>
-              <div id="roleDefinitionList" class="role-definition-list"><p class="empty">Carregando cargos...</p></div>
-              <p class="muted">Os temas são aplicados somente ao perfil que recebeu o cargo ativo. Cargos administrativos e VIP não podem ser criados por este editor.</p>
-            </article>
-            <article class="panel glass"><div class="panel-heading"><div><p class="eyebrow">PUBLISHED CATALOGUE</p><h2>Itens ativos</h2></div></div><div id="ecosystemCatalog" class="audit-list"><p class="empty">Carregando catálogo...</p></div></article>
+            <article class="panel glass"><div class="panel-heading"><div><p class="eyebrow">ROLE ASSIGNMENTS</p><h2>Quem recebeu cada cargo ou tag</h2><p class="muted">Lista de atribuições ativas, com perfil, cargo e validade.</p></div><button id="reloadRoleAssignments" class="quiet-button" type="button">↻ Atualizar</button></div><div id="roleAssignmentsList" class="audit-list"><p class="empty">Carregando atribuições...</p></div></article>
+            <article class="panel glass"><div class="panel-heading"><div><p class="eyebrow">PUBLISHED CATALOGUE</p><h2>Tags e molduras disponíveis</h2></div></div><div id="ecosystemCatalog" class="audit-list"><p class="empty">Carregando catálogo...</p></div></article>
           </section>
 
           <section class="view" id="view-storage">
@@ -173,7 +155,7 @@
           <section class="view" id="view-ip">
             <div class="page-heading"><div><p class="eyebrow">RESTRICTED INTELLIGENCE</p><h1>IP Intelligence</h1><p class="muted">Dados sensíveis visíveis somente nesta sessão de administrador principal.</p></div><button id="reloadIp" class="quiet-button">↻ Atualizar</button></div>
             <div class="privacy-banner"><span>⌁</span><div><strong>Acesso exclusivo</strong><p>IPs são dados pessoais: ficam criptografados e acessíveis somente ao proprietário. O painel mostra sinais técnicos e localização aproximada; não tenta descobrir identidade, endereço residencial ou outros dados privados.</p></div></div>
-            <article class="panel glass"><div class="toolbar"><input id="ipProfileFilter" class="search-input" placeholder="Filtrar por código de perfil"><button id="searchIp" class="secondary">Consultar</button><button id="clearIpEvents" class="quiet-button danger-action" type="button">⌫ Limpar histórico</button></div><p class="muted" id="vpnProviderStatus">A classificação de VPN/proxy depende do provedor de reputação configurado.</p><div class="table-wrap"><table><thead><tr><th>IP</th><th>Perfil</th><th>Localização</th><th>ISP / ASN</th><th>Dispositivo</th><th>Navegador / SO</th><th>VPN / Proxy / Tor</th><th>Atividade</th><th>Evento</th></tr></thead><tbody id="ipTable"><tr><td colspan="9" class="empty">Carregando eventos...</td></tr></tbody></table></div></article>
+            <article class="panel glass"><div class="toolbar"><input id="ipProfileFilter" class="search-input" placeholder="Filtrar por código de perfil"><button id="searchIp" class="secondary">Consultar</button><button id="clearIpEvents" class="quiet-button danger-action" type="button">⌫ Limpar histórico</button></div><p class="muted" id="vpnProviderStatus">Sistema, navegador e dispositivo são estimados pelo user-agent. VPN/proxy/Tor dependem do provedor de reputação configurado.</p><div class="table-wrap"><table><thead><tr><th>IP</th><th>Perfil</th><th>Localização</th><th>ISP / ASN</th><th>Dispositivo / modelo</th><th>Navegador</th><th>Sistema operacional</th><th>VPN / Proxy / Tor</th><th>Atividade</th><th>Evento</th></tr></thead><tbody id="ipTable"><tr><td colspan="10" class="empty">Carregando eventos...</td></tr></tbody></table></div></article>
           </section>
 
           <section class="view" id="view-audit">

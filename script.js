@@ -1021,10 +1021,8 @@ function renderIdentity() {
   document.querySelector(".profile-card")?.classList.toggle("effects-enabled", profile.efeitosPerfil !== false);
   $("footerText").textContent = profile.rodape || "";
 
-  $("badges").innerHTML = profile.insignias
-    .filter(Boolean)
-    .map((badge) => `<span class="badge">${escapeHTML(badge)}</span>`)
-    .join("");
+  // Tags públicas vêm exclusivamente do catálogo administrado no Control.
+  $("badges").innerHTML = "";
 
   document.documentElement.style.setProperty(
     "--font",
@@ -1126,13 +1124,6 @@ async function loadProfileEntitlements() {
       }
     }
     const badges = $("badges");
-    if (data.official === true && !badges.querySelector(".hattz-official-badge")) {
-      const official = document.createElement("span");
-      official.className = "badge hattz-official-badge";
-      official.textContent = "✦ Hättz Official";
-      official.title = "Perfil oficial do Hättz";
-      badges.append(official);
-    }
     for (const role of (data.roles || []).slice(1)) {
       const chip = document.createElement("span");
       chip.className = "badge hattz-role-badge";
@@ -1140,13 +1131,6 @@ async function loadProfileEntitlements() {
       chip.title = role.description || role.label;
       if (role.color && /^#[0-9a-f]{6}$/i.test(role.color)) chip.style.setProperty("--role-accent", role.color);
       badges.append(chip);
-    }
-    if (data.vip) {
-      const vip = document.createElement("span");
-      vip.className = "badge hattz-vip-badge";
-      vip.textContent = "✦ VIP";
-      vip.title = data.vipExpiresAt ? `VIP até ${new Date(data.vipExpiresAt).toLocaleDateString("pt-BR")}` : "Hättz VIP";
-      badges.append(vip);
     }
     for (const item of (data.badges || [])) {
       const chip = document.createElement("span");
@@ -2553,7 +2537,7 @@ function deleteSavedTheme() {
   showToast("Tema excluído.");
 }
 
-const BADGE_PRESETS = ["Verified", "Gamer", "Artist", "Designer", "VIP", "Creator", "Photographer", "Music", "Technology", "Writer", "Editor", "Collector"];
+const BADGE_PRESETS = [];
 const RESERVED_LABELS = /\b(admin|administrator|dev|developer|staff|moderator)\b/i;
 const normalizeBadge = (value) => /^dono$/i.test(String(value).trim()) ? "Owner" : String(value).trim();
 const isBlockedBadge = (value) => {
@@ -2570,14 +2554,7 @@ function renderBadgeLibrary() {
     .map((item) => item.trim())
     .filter((item) => item && !isBlockedBadge(item));
 
-  container.innerHTML = BADGE_PRESETS.map((badge) => `
-    <button
-      class="badge-preset${selected.includes(badge) ? " selected" : ""}"
-      type="button"
-      data-badge="${escapeHTML(badge)}"
-      aria-pressed="${selected.includes(badge)}"
-    >${escapeHTML(badge)}</button>
-  `).join("");
+  container.innerHTML = '<span class="field-hint">As tags são criadas e atribuídas pelo Hättz Control. Nenhuma tag vem pré-cadastrada.</span>';
 }
 
 function toggleBadgePreset(event) {
@@ -2689,10 +2666,7 @@ function readIdentityEditor() {
   profile.bio = $("editBio").value.trim();
   profile.cargo = $("editRole").value;
 
-  profile.insignias = [...new Set($("editBadges").value
-    .split(",")
-    .map(normalizeBadge)
-    .filter((item) => item && !isBlockedBadge(item) && !/^dono$/i.test(item)))];
+  profile.insignias = [];
 
   profile.rodape = $("editFooter").value.trim();
   profile.bannerHeadingVisible = $("bannerHeadingVisible").checked;
@@ -2791,7 +2765,7 @@ function saveChanges() {
 
 async function resetProfile() {
   const confirmed = confirm(
-    "Tem certeza que deseja restaurar o perfil padrão? Suas personalizações e mídias serão removidas."
+    "Restaurar o perfil padrão? Personalizações e mídias serão removidas. VIP, cargos e tags concedidos pelo Control serão preservados."
   );
 
   if (!confirmed) return;
@@ -2854,9 +2828,10 @@ async function resetProfile() {
 
   saveProfile();
   renderProfile();
+  await loadProfileEntitlements();
   fillEditor();
 
-  showToast("Perfil restaurado.");
+  showToast("Perfil restaurado. VIP, cargos e tags foram preservados.");
 }
 
 async function uploadAvatar(event) {
