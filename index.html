@@ -209,13 +209,13 @@
 
           <div class="field-group">
             <label for="editRole">Cargo do perfil</label>
-            <select class="text-input" id="editRole">
+            <select class="text-input" id="editRole" disabled aria-describedby="editRoleHint">
               <option value="">Sem identificação</option>
               <option value="Membro">Membro</option>
               <option value="Artista">Artista</option>
               <option value="Designer">Designer</option>
             </select>
-            <small class="field-hint">Cargos oficiais são reservados aos dois perfis oficiais. VIP é um benefício concedido pelo Control, não um cargo manual.</small>
+            <small class="field-hint" id="editRoleHint">Cargos são concedidos pelo Hättz Control por perfil. VIP é um benefício separado.</small>
           </div>
 
           <div class="field-group">

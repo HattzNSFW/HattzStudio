@@ -1110,6 +1110,21 @@ async function loadProfileEntitlements() {
     const data = await response.json();
     const verifiedBadge = $("verifiedBadge");
     verifiedBadge.hidden = data.vip !== true;
+    const roleChip = $("profileRole");
+    if (roleChip && data.official !== true) {
+      const assignedRoles = Array.isArray(data.roles) ? data.roles : [];
+      roleChip.textContent = assignedRoles[0]?.label || "";
+      roleChip.hidden = assignedRoles.length === 0;
+      roleChip.classList.toggle("owner-role", false);
+      roleChip.title = assignedRoles[0]?.description || assignedRoles[0]?.label || "";
+      const themedRole = assignedRoles.find(role => role.theme && Object.values(role.theme).some(value => /^#[0-9a-f]{6}$/i.test(String(value || ""))));
+      if (IS_PUBLIC_VIEW && themedRole?.theme) applyColors(themedRole.theme);
+      if (assignedRoles[0]?.color && /^#[0-9a-f]{6}$/i.test(assignedRoles[0].color)) {
+        roleChip.style.setProperty("--role-accent", assignedRoles[0].color);
+      } else {
+        roleChip.style.removeProperty("--role-accent");
+      }
+    }
     const badges = $("badges");
     if (data.official === true && !badges.querySelector(".hattz-official-badge")) {
       const official = document.createElement("span");
@@ -1117,6 +1132,14 @@ async function loadProfileEntitlements() {
       official.textContent = "✦ Hättz Official";
       official.title = "Perfil oficial do Hättz";
       badges.append(official);
+    }
+    for (const role of (data.roles || []).slice(1)) {
+      const chip = document.createElement("span");
+      chip.className = "badge hattz-role-badge";
+      chip.textContent = role.label;
+      chip.title = role.description || role.label;
+      if (role.color && /^#[0-9a-f]{6}$/i.test(role.color)) chip.style.setProperty("--role-accent", role.color);
+      badges.append(chip);
     }
     if (data.vip) {
       const vip = document.createElement("span");
@@ -2530,14 +2553,11 @@ function deleteSavedTheme() {
   showToast("Tema excluído.");
 }
 
-const BADGE_PRESETS = ["Verified", "Gamer", "Artist", "Designer", "Creator", "Photographer", "Music", "Technology", "Writer", "Editor", "Collector"];
+const BADGE_PRESETS = ["Verified", "Gamer", "Artist", "Designer", "VIP", "Creator", "Photographer", "Music", "Technology", "Writer", "Editor", "Collector"];
 const RESERVED_LABELS = /\b(admin|administrator|dev|developer|staff|moderator)\b/i;
 const normalizeBadge = (value) => /^dono$/i.test(String(value).trim()) ? "Owner" : String(value).trim();
 const isBlockedBadge = (value) => {
-  const label = String(value || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
-  const compactLabel = label.toLowerCase().replace(/[^a-z0-9]/g, "");
-  const membershipBadge = /vip|premium/.test(compactLabel);
-  const reserved = RESERVED_LABELS.test(label) || /\b(owner|dono|founder|official|oficial)\b/i.test(label) || membershipBadge;
+  const reserved = RESERVED_LABELS.test(String(value)) || /\b(owner|dono|founder|official|oficial)\b/i.test(String(value));
   return reserved && !isOfficialProfileContext();
 };
 

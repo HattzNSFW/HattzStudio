@@ -24,3 +24,49 @@
 .danger-action { color: #e5a0a8; border-color: rgba(210, 105, 125, .28); }
 .danger-action:hover { color: #ffdce1; border-color: rgba(230, 110, 135, .55); background: rgba(150, 45, 65, .12); }
 .danger-action:disabled { opacity: .55; cursor: wait; }
+
+
+/* HÄTTZ CONTROL — refined console layer */
+:root{--control-accent:#b99af0;--control-accent-soft:rgba(185,154,240,.14);--control-border:rgba(205,185,235,.16)}
+::selection{background:rgba(185,154,240,.28);color:#fff}
+button,input,select,textarea{transition:border-color .18s ease,background .18s ease,box-shadow .18s ease,transform .18s ease}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--control-accent);outline-offset:2px}
+.glass,.panel,.metric,.sidebar,.topbar,.login-card{border-color:var(--control-border);box-shadow:0 18px 55px rgba(0,0,0,.18),inset 0 1px rgba(255,255,255,.025);backdrop-filter:blur(22px)}
+.panel{border-radius:22px}
+.metric{border-radius:18px}
+.nav-item{border-radius:12px;transition:background .18s ease,color .18s ease,transform .18s ease}
+.nav-item:hover{transform:translateX(2px);background:rgba(185,154,240,.08)}
+.nav-item.active{background:linear-gradient(105deg,rgba(185,154,240,.18),rgba(185,154,240,.055));box-shadow:inset 2px 0 var(--control-accent);color:#f4eaff}
+.primary{background:linear-gradient(135deg,#b99af0,#8f72ce);box-shadow:0 8px 24px rgba(143,114,206,.22)}
+.primary:hover,.secondary:hover,.quiet-button:hover{transform:translateY(-1px)}
+input,select,textarea{border-color:rgba(205,185,235,.16);background:rgba(8,7,13,.48);border-radius:11px}
+input:focus,select:focus,textarea:focus{border-color:rgba(185,154,240,.65);box-shadow:0 0 0 3px rgba(185,154,240,.1)}
+.table-wrap{border:1px solid rgba(205,185,235,.12);border-radius:15px}
+table{border-collapse:separate;border-spacing:0}
+thead th{background:rgba(185,154,240,.055);color:#cfc4df;font-size:.72rem;letter-spacing:.07em;text-transform:uppercase}
+tbody tr:hover td{background:rgba(185,154,240,.045)}
+.role-manager{margin-top:16px;padding:15px;border:1px solid rgba(185,154,240,.17);border-radius:16px;background:rgba(185,154,240,.035)}
+.inline-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.role-list{display:grid;gap:7px;margin-top:12px}
+.role-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid rgba(205,185,235,.12);border-radius:11px;background:rgba(255,255,255,.025)}
+.role-row span{color:var(--muted);font-size:.78rem}
+.audit-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:4px 0 16px}
+.audit-toolbar .muted{max-width:760px;margin:0}
+.danger{border:1px solid rgba(236,105,125,.3);background:rgba(236,105,125,.1);color:#ffc4ce;border-radius:11px;padding:10px 14px}
+.sub-cell{display:block;margin-top:4px;color:var(--muted);font-size:.72rem;line-height:1.45}
+.privacy-banner{border:1px solid rgba(185,154,240,.2);background:linear-gradient(110deg,rgba(185,154,240,.09),rgba(185,154,240,.025));border-radius:16px}
+@media(max-width:760px){.audit-toolbar{align-items:stretch;flex-direction:column}.audit-toolbar .danger{width:100%}.role-row{align-items:flex-start;flex-direction:column}.inline-actions>*{flex:1 1 42%}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+/* Special role identity editor */
+.role-design-panel{margin-top:18px}
+.role-design-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.role-theme-eyebrow{margin:20px 0 10px}
+.role-theme-colors{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.role-theme-colors label{display:grid;gap:7px;color:var(--muted);font-size:.78rem}
+.role-theme-colors input[type=color]{width:100%;height:42px;padding:4px;cursor:pointer}
+.role-definition-list{display:grid;gap:8px;margin-top:16px}
+.role-definition-row{display:grid;grid-template-columns:minmax(120px,1fr) minmax(90px,1fr) auto;align-items:center;gap:12px;padding:10px 12px;border:1px solid rgba(205,185,235,.12);border-radius:12px;background:rgba(255,255,255,.025)}
+.role-preview-chip{justify-self:start;border:1px solid color-mix(in srgb,var(--role-accent) 45%,transparent);border-radius:999px;padding:6px 11px;background:color-mix(in srgb,var(--role-accent) 13%,transparent);color:var(--role-accent);font-size:.8rem;font-weight:700}
+.role-definition-meta{color:var(--muted);font-size:.76rem;overflow-wrap:anywhere}
+@media(max-width:760px){.role-design-grid{grid-template-columns:1fr}.role-theme-colors{grid-template-columns:repeat(3,minmax(0,1fr))}.role-definition-row{grid-template-columns:1fr auto}.role-definition-meta{grid-column:1}}

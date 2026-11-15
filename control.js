@@ -240,13 +240,51 @@
   }
   async function loadEcosystem() {
     try {
-      const data = await api('/api/catalog', {}, false);
+      const [data, roleData] = await Promise.all([api('/api/catalog', {}, false), api('/api/admin/roles')]);
       const frames = data.frames || [], badges = data.badges || [];
+      $('grantRoleId').innerHTML = (roleData.roles || []).map(x => `<option value="${escapeHtml(x.id)}">${escapeHtml(x.label)}</option>`).join('') || '<option value="">Nenhum cargo disponível</option>';
+      $('roleDefinitionList').innerHTML = (roleData.roles || []).map(role => `<div class="role-definition-row"><span class="role-preview-chip" style="--role-accent:${escapeHtml(role.color)}">${escapeHtml(role.label)}</span><span class="role-definition-meta">${escapeHtml(role.id)}</span><button type="button" class="quiet-button" data-edit-role="${escapeHtml(role.id)}">Editar</button></div>`).join('') || '<p class="empty">Nenhum cargo cadastrado.</p>';
+      $('roleDefinitionList').querySelectorAll('[data-edit-role]').forEach(button => button.addEventListener('click', () => editRoleDefinition((roleData.roles || []).find(role => role.id === button.dataset.editRole))));
       $('grantBadgeId').innerHTML = badges.map(x => `<option value="${escapeHtml(x.id)}">${escapeHtml(x.name)} · ${escapeHtml(x.rarity)}</option>`).join('');
       $('grantFrameId').innerHTML = frames.map(x => `<option value="${escapeHtml(x.id)}">${escapeHtml(x.name)} · ${escapeHtml(x.rarity)}</option>`).join('');
       $('ecosystemCatalog').innerHTML = [...badges.map(x => ({...x,kind:'Insígnia'})),...frames.map(x=>({...x,kind:'Moldura'}))].map(x=>`<div class="audit-item"><span class="audit-time">${escapeHtml(x.kind)}</span><div><div class="audit-action">${escapeHtml(x.name)}</div><div class="audit-detail">${escapeHtml(x.description || '')}</div></div><span class="audit-target">${escapeHtml(x.rarity)}</span></div>`).join('') || '<p class="empty">Catálogo vazio.</p>';
     } catch (error) { notify(error.message); }
   }
+  const ROLE_THEME_FIELDS = { background: 'roleThemeBackground', gradient: 'roleThemeGradient', card: 'roleThemeCard', accent: 'roleThemeAccent', text: 'roleThemeText', border: 'roleThemeBorder' };
+  function editRoleDefinition(role) {
+    if (!role) return;
+    $('roleDefinitionId').value = role.id;
+    $('roleDefinitionId').dataset.originalId = role.id;
+    $('roleDefinitionLabel').value = role.label || '';
+    $('roleDefinitionDescription').value = role.description || '';
+    $('roleDefinitionColor').value = /^#[0-9a-f]{6}$/i.test(role.color || '') ? role.color : '#b99af0';
+    Object.entries(ROLE_THEME_FIELDS).forEach(([key, id]) => { const value = role.theme?.[key]; $(id).value = /^#[0-9a-f]{6}$/i.test(value || '') ? value : '#0b0a10'; });
+    $('saveRoleDefinition').textContent = 'Atualizar cargo';
+    $('roleDefinitionId').readOnly = true;
+    $('roleDefinitionLabel').focus();
+  }
+  function resetRoleDefinition() {
+    ['roleDefinitionId','roleDefinitionLabel','roleDefinitionDescription'].forEach(id => $(id).value = '');
+    delete $('roleDefinitionId').dataset.originalId;
+    $('roleDefinitionId').readOnly = false;
+    $('roleDefinitionColor').value = '#b99af0';
+    Object.values(ROLE_THEME_FIELDS).forEach((id, index) => { $(id).value = ['#0b0a10','#292333','#14121b','#a78bfa','#f4f0fa','#302a3a'][index]; });
+    $('saveRoleDefinition').textContent = 'Salvar cargo especial';
+  }
+  async function saveRoleDefinition() {
+    const id = $('roleDefinitionId').value.trim().toLowerCase();
+    const body = { id, label: $('roleDefinitionLabel').value.trim(), description: $('roleDefinitionDescription').value.trim(), color: $('roleDefinitionColor').value, theme: Object.fromEntries(Object.entries(ROLE_THEME_FIELDS).map(([key, field]) => [key, $(field).value])) };
+    if (!/^[a-z0-9][a-z0-9_-]{1,47}$/.test(id)) { notify('Use um ID de 2 a 48 caracteres, sem espaços.'); return; }
+    if (!body.label) { notify('Informe o nome do cargo.'); return; }
+    try {
+      const editing = Boolean($('roleDefinitionId').dataset.originalId);
+      await api(editing ? `/api/admin/roles/${encodeURIComponent(id)}` : '/api/admin/roles', { method: editing ? 'PUT' : 'POST', body: JSON.stringify(body) });
+      notify(editing ? 'Cargo e tema atualizados.' : 'Cargo especial criado.');
+      resetRoleDefinition();
+      await loadEcosystem();
+    } catch (error) { notify(error.message); }
+  }
+
   async function saveCatalogItem() {
     const kind = $('catalogKind').value, id = $('catalogId').value.trim().toLowerCase();
     if (!/^[a-z0-9][a-z0-9_-]{1,47}$/.test(id)) { notify('Use um ID de 2 a 48 caracteres: letras, números, hífen ou sublinhado.'); return; }
@@ -275,6 +313,31 @@
     catch(error){notify(error.message);}
   }
 
+  async function mutateProfileRole(action) {
+    const code = entitlementCode();
+    if (!/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{10}$/.test(code)) { notify('Informe um código de perfil válido.'); return; }
+    const roleId = $('grantRoleId').value;
+    if (!roleId) { notify('Selecione um cargo.'); return; }
+    const expiry = $('roleExpiry').value;
+    const expiresAt = expiry ? new Date(expiry).getTime() : null;
+    if (action === 'grant' && expiry && (!Number.isFinite(expiresAt) || expiresAt <= Date.now())) { notify('A validade do cargo precisa ser futura.'); return; }
+    try {
+      await api(`/api/admin/profiles/${code}/roles`, { method: 'POST', body: JSON.stringify({ roleId, action, expiresAt: action === 'grant' ? expiresAt : null }) });
+      notify(action === 'grant' ? 'Cargo concedido.' : 'Cargo revogado.');
+      await loadProfileRoles();
+    } catch (error) { notify(error.message); }
+  }
+  async function loadProfileRoles() {
+    const code = entitlementCode();
+    if (!/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{10}$/.test(code)) { notify('Informe um código de perfil válido.'); return; }
+    try {
+      const data = await api(`/api/admin/profiles/${code}/roles`);
+      $('profileRoleList').innerHTML = (data.roles || []).length
+        ? data.roles.map(role => `<div class="role-row"><strong><span class="role-preview-chip" style="--role-accent:${escapeHtml(role.color || '#b99af0')}">${escapeHtml(role.label)}</span></strong><span>${role.expires_at ? `Até ${formatDate(role.expires_at)}` : 'Sem validade'}</span></div>`).join('')
+        : '<p class="empty">Este perfil não possui cargos concedidos.</p>';
+    } catch (error) { $('profileRoleList').innerHTML = `<p class="empty">${escapeHtml(error.message)}</p>`; }
+  }
+
   async function loadIp() {
     const profile = encodeURIComponent($("ipProfileFilter").value.trim());
     const reloadButton = $("reloadIp");
@@ -284,13 +347,16 @@
       const providerState = data.reputationProviderEnabled ? "IPQualityScore ativo apenas para eventos de segurança." : "IPQualityScore desativado; VPN/proxy/Tor ficam sem classificação externa.";
       $("vpnProviderStatus").textContent = `Exibindo ${data.events.length} IPs únicos por perfil. Localização aproximada via Cloudflare · retenção de ${data.retentionDays || 90} dias. ${providerState}`;
       $("ipTable").innerHTML = data.events.length ? data.events.map((event) => {
-        const location = [event.city, event.region, event.country].filter(Boolean).join(", ") || "—";
+        const location = [event.city, event.region, event.country].filter(Boolean).join(", ") || "Localização aproximada indisponível";
         const isp = [event.as_org, event.asn ? `ASN ${event.asn}` : ""].filter(Boolean).join(" · ") || "—";
-        const risk = [event.vpn ? "VPN" : "", event.proxy ? "Proxy" : "", event.tor ? "Tor" : ""].filter(Boolean).join(" · ") || "Não detectado / não verificado";
+        const risk = [event.vpn === 1 ? "VPN" : "", event.proxy === 1 ? "Proxy" : "", event.tor === 1 ? "Tor" : ""].filter(Boolean).join(" · ") || "Sem sinal confirmado";
+        const client = event.client || {};
+        const activity = `${Number(event.event_count || 1)} evento(s)<span class="sub-cell">Primeiro: ${escapeHtml(formatDate(event.first_seen || event.created_at))}<br>Último: ${escapeHtml(formatDate(event.last_seen || event.created_at))}</span>`;
         const eventType = String(event.event_type || "evento").replace(/[._-]+/g, " ");
-        return `<tr><td><span class="code-cell">${escapeHtml(event.ip || "Criptografado")}</span></td><td>${escapeHtml(event.profile_code || "—")}</td><td>${escapeHtml(location)}</td><td>${escapeHtml(isp)}</td><td>${escapeHtml(risk)}${event.risk_score != null ? `<span class="sub-cell">Risk score ${event.risk_score}</span>` : ""}</td><td>${escapeHtml(eventType)}</td><td>${formatDate(event.created_at)}</td></tr>`;
-      }).join("") : '<tr><td colspan="7" class="empty">Nenhum evento encontrado.</td></tr>';
-    } catch (error) { $("ipTable").innerHTML = `<tr><td colspan="7" class="empty">${escapeHtml(error.message)}</td></tr>`; }
+        const ipVersion = String(event.ip || "").includes(":") ? "IPv6" : "IPv4";
+        return `<tr><td><span class="code-cell">${escapeHtml(event.ip || "Criptografado")}</span><span class="sub-cell">${ipVersion}</span></td><td>${escapeHtml(event.profile_code || "—")}</td><td>${escapeHtml(location)}</td><td>${escapeHtml(isp)}</td><td>${escapeHtml(client.device || "Desconhecido")}</td><td>${escapeHtml([client.browser,client.os].filter(Boolean).join(" · ") || "—")}</td><td>${escapeHtml(risk)}${event.risk_score != null ? `<span class="sub-cell">Pontuação de risco ${escapeHtml(event.risk_score)}/100</span>` : ""}</td><td>${activity}</td><td>${escapeHtml(eventType)}</td></tr>`;
+      }).join("") : '<tr><td colspan="9" class="empty">Nenhum evento encontrado.</td></tr>';
+    } catch (error) { $("ipTable").innerHTML = `<tr><td colspan="9" class="empty">${escapeHtml(error.message)}</td></tr>`; }
     finally { if (reloadButton) { reloadButton.disabled = false; reloadButton.textContent = "↻ Atualizar"; } }
   }
   async function clearIpEvents() {
@@ -315,6 +381,18 @@
     } catch (error) { $("auditList").innerHTML = `<p class="empty">${escapeHtml(error.message)}</p>`; }
   }
 
+  async function clearAudit() {
+    if (!window.confirm("Isso removerá os registros atuais da auditoria. O evento desta limpeza será preservado. Continuar?")) return;
+    const button = $("clearAudit");
+    button.disabled = true;
+    try {
+      const result = await api("/api/admin/audit/clear", { method: "POST", body: JSON.stringify({ confirmation: "LIMPAR" }) });
+      notify(`${Number(result.deleted || 0)} registros removidos. A limpeza foi registrada.`);
+      await loadAudit();
+    } catch (error) { notify(error.message); }
+    finally { button.disabled = false; }
+  }
+
   $("loginForm").addEventListener("submit", login);
   $("logoutButton").addEventListener("click", () => logout(true));
   document.querySelectorAll(".nav-item").forEach((button) => button.addEventListener("click", () => setView(button.dataset.view)));
@@ -334,7 +412,12 @@
   $("reloadEcosystem").addEventListener("click", loadEcosystem);
   $("catalogKind").addEventListener("change", () => { $("catalogBadgeFields").hidden = $("catalogKind").value !== "badges"; });
   $("saveCatalogItem").addEventListener("click", saveCatalogItem);
+  $("saveRoleDefinition").addEventListener("click", saveRoleDefinition);
+  $("newRoleDefinition").addEventListener("click", resetRoleDefinition);
   $("saveVip").addEventListener("click", saveVip);
+  $("grantRole").addEventListener("click", () => mutateProfileRole("grant"));
+  $("revokeRole").addEventListener("click", () => mutateProfileRole("revoke"));
+  $("loadProfileRoles").addEventListener("click", loadProfileRoles);
   $("grantBadge").addEventListener("click", () => mutateProfileCollectible("badges", "grant"));
   $("revokeBadge").addEventListener("click", () => mutateProfileCollectible("badges", "revoke"));
   $("grantFrame").addEventListener("click", () => mutateProfileCollectible("frames", "grant"));
@@ -348,6 +431,7 @@
   $("searchIp").addEventListener("click", loadIp);
   $("clearIpEvents").addEventListener("click", clearIpEvents);
   $("reloadAudit").addEventListener("click", loadAudit);
+  $("clearAudit").addEventListener("click", clearAudit);
 
   if (token) showApp(true); else showApp(false);
 })();

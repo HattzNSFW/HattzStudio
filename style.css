@@ -3879,3 +3879,18 @@ body.has-animated-background:not(.has-card-background) .card-background-overlay 
   box-shadow: 0 0 12px #a78bfa30, inset 0 0 8px #e7d7ff12;
   letter-spacing: .035em;
 }
+
+
+/* HÄTTZ SHARE — visual refinement */
+:root{--hattz-focus:rgba(185,154,240,.75)}
+::selection{background:rgba(185,154,240,.28);color:#fff}
+button,input,select,textarea{transition:background .2s ease,border-color .2s ease,box-shadow .2s ease,transform .2s ease}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--hattz-focus);outline-offset:3px}
+button:hover{filter:brightness(1.06)}
+.card,.profile-card,.editor-card,.modal-content,.panel{box-shadow:0 20px 65px rgba(0,0,0,.2),inset 0 1px rgba(255,255,255,.025)}
+.badge{backdrop-filter:blur(12px)}
+.hattz-role-badge{border-color:color-mix(in srgb,var(--role-accent,#b99af0) 34%,transparent);background:color-mix(in srgb,var(--role-accent,#b99af0) 12%,transparent);color:var(--role-accent,#e6d8ff)}
+img,video{max-width:100%}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+.role-chip:not(.owner-role){border-color:color-mix(in srgb,var(--role-accent,#b99af0) 42%,transparent);background:color-mix(in srgb,var(--role-accent,#b99af0) 12%,transparent);color:var(--role-accent,#e5d6ff)}
